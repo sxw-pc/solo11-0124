@@ -1,0 +1,16 @@
+{
+  "case_id": "booking-1",
+  "at": "2026-06-01T12:00:00Z",
+  "receipts": [
+    {
+      "event_key": "scan-B1",
+      "target": "B1",
+      "at": "2026-06-01T11:00:00Z",
+      "version": 1,
+      "amount": 2,
+      "kind": "rebook",
+      "section": "hall-A",
+      "slot": "S2"
+    }
+  ]
+}

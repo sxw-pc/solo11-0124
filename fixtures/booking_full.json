@@ -1,0 +1,16 @@
+{
+  "case_id": "booking-full",
+  "source_id": "venue-1",
+  "at": "2026-06-01T08:00:00Z",
+  "facts": {
+    "booking_id": "B2",
+    "paid": true,
+    "section": "hall-A",
+    "slot": "S1",
+    "people": 3,
+    "tier": "standard",
+    "replacement_slot": "S2",
+    "replacement_capacity": 1,
+    "settle_by": "2026-06-02T00:00:00Z"
+  }
+}
