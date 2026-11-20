@@ -17,6 +17,8 @@ def settle(db_path,input_path):
         if assessment["stale"]:raise ValueError("assessment_stale")
         obligations=db.execute(f"SELECT * FROM {t['obligation']} WHERE assessment_id=? ORDER BY target",
                                (assessment["id"],)).fetchall()
+        targets=[x["target"] for x in obligations]
+        if len(targets)!=len(set(targets)):raise ValueError("duplicate_obligation_target")
         for receipt in doc["receipts"]:
             for key in ("event_key","target","at","version","amount"):
                 if key not in receipt:raise ValueError("receipt_missing_"+key)
@@ -38,16 +40,27 @@ def settle(db_path,input_path):
                              (ob["id"],ob["deadline"])).fetchone()[0]
             late=db.execute(f"SELECT COALESCE(sum(amount),0) FROM {t['receipt']} WHERE obligation_id=? AND verdict='valid' AND at>?",
                             (ob["id"],ob["deadline"])).fetchone()[0]
-            state="complete" if valid>=ob["required"] else ("overdue" if now>utc(ob["deadline"]) else ("partial" if valid>0 else "pending"))
+            if valid>ob["required"]:
+                state="over_complete"
+            elif valid==ob["required"]:
+                state="complete"
+            elif now>utc(ob["deadline"]):
+                state="overdue"
+            elif valid>0:
+                state="partial"
+            else:
+                state="pending"
             db.execute(f"UPDATE {t['obligation']} SET state=? WHERE id=?",(state,ob["id"]))
             results.append({"target":ob["target"],"state":state,"valid_amount":valid,"late_amount":late,
                             "required":ob["required"],"deadline":ob["deadline"]})
-        overall=("no_obligation" if not results else ("complete" if all(x["state"]=="complete" for x in results)
-                 else ("overdue" if any(x["state"]=="overdue" for x in results)
-                 else ("partial" if any(x["state"] in ("partial","complete") for x in results) else "pending"))))
+        states={x["state"] for x in results}
+        overall=("no_obligation" if not results else
+                 ("complete" if states=={"complete"} else
+                  ("over_complete" if "over_complete" in states else
+                   ("overdue" if "overdue" in states else
+                    ("partial" if states & {"partial","complete"} else "pending")))))
         db.commit()
     except Exception:
         db.rollback();raise
     finally:db.close()
     return {"case":doc["case_id"],"status":overall,"obligations":results}
-
